@@ -1,13 +1,9 @@
-"""
-version 0.2
-"""
 from time import sleep
 import telebot
 import settings as sett
 from uploading_database import *
 
 bot = telebot.TeleBot(sett.TOKEN)
-# data = None
 permission_p = True
 previous_time = datetime.datetime(1991, 1, 1, 0, 0, 0)
 masiv = []
@@ -43,9 +39,9 @@ def price(pr):
         story_count.update({company: [current_time, data]})
 
     data = f'*** {current_time} ***\n\n' \
-        f'❗️Товары дополнительно фильтруются: скидка> 2000р, цена товара <80000р.\n\n' \
-        f'{data}' \
-        f'Конец❤️'
+           f'❗️Товары дополнительно фильтруются: скидка> 2000р, цена товара <80000р.\n\n' \
+           f'{data}' \
+           f'Конец❤️'
 
     # if len(data) > 4000:
     #     data = data.replace('\n\n', '\n')

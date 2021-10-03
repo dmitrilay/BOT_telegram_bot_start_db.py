@@ -2,68 +2,51 @@
 # version 0.4 для мвидео
 # ________________
 import datetime
-import models1 as db1  # mvideo
-import models2 as db2  # mts
-import models3 as db3  # dns
-import models4 as db4  # eldorado
+import models as db_universal
+
+shop = {'mvideo': db_universal.Mvm,
+        'dns': db_universal.Dns,
+        'mts': db_universal.Mts,
+        'eldorado': db_universal.Eld}
 
 
 class ParserFile:
-    def __init__(self, db):
-        self.price_db = {'Наименование': [], 'Цена': [], 'Цена2': [], 'дата': [], 'Вывод': []}
-        self.db = db
+    def __init__(self, table_shop):
+        self.price_db = {}
+        self.table_shop = table_shop
 
     def unloading_from_the_database(self):
         """
         Выгружаем данные из базы даннхы для анализа
         """
         self.price_db.clear()
-        self.price_db = {'Наименование': [], 'Цена': [], 'Цена2': [], 'дата': [], 'Вывод': []}
-        dt = datetime.date.today()
-        with self.db.db:
-            for data in self.db.PriceParser.select().where(self.db.PriceParser.date_recording == dt):
-                # for data in self.db.PriceParser.select():
-                self.price_db['Наименование'].append(data.name)
-                self.price_db['Цена'].append(data.price_old)
-                self.price_db['Цена2'].append(data.price_new)
-                self.price_db['дата'].append(data.date_recording)
-                self.price_db['Вывод'].append(data.display)
+        self.price_db = {}
+        with db_universal.db:
+            # for data in self.db.PriceParser.select().where(self.db.PriceParser.date_recording == dt):
+            for d in self.table_shop.select():
+                self.price_db[d.name] = [d.price_old, d.price_new, d.date_recording, d.display]
+            print(self.price_db)
 
-    def search_for_discounts(self, pr1=20):
+    def search_for_discounts(self, discount_rang):
         """
         Фильтрация результатов
         2)Анализ данных
         3)Вывод отфильтрованных данных
         """
         data_str = ''
-        display_dict = {}
-        stop = len(self.price_db['Наименование'])
-        for i in range(0, stop):
+        for name, value in self.price_db.items():
             try:
-                name = self.price_db['Наименование'][i]
-                price_1 = int(self.price_db['Цена'][i])
-                price_2 = int(self.price_db['Цена2'][i])
-                display = int(self.price_db['Вывод'][i])
+                price_1, price_2, display = int(value[0]), int(value[1]), int(value[3])
                 discount = price_1 - price_2
-
-                if pr1 == 30:
-                    percentage_start = 30
-                    percentage_limiter = 1000
-                elif pr1 == 1520:
-                    percentage_start = 15
-                    percentage_limiter = 20
-                elif pr1 == 2030:
-                    percentage_start = 20
-                    percentage_limiter = 30
 
                 if price_2 != 0:
                     if price_2 < 80000 and discount > 2000:
                         percentage_price_1 = (price_2 / price_1 * 100 - 100) * (-1)
-                        percentage_input = percentage_start
+                        percentage_input = discount_rang[0]
                         if percentage_price_1 >= percentage_input:
-                            if percentage_price_1 <= percentage_limiter:
+                            if percentage_price_1 <= discount_rang[1]:
                                 percent = int((price_2 / price_1 - 1) * 100)
-                                data = f"{name} {price_2} {percent}% \n\n"
+                                data = f"{name} {price_2}Р {percent}% \n\n"
                                 data_str = data_str + data
                                 # display_dict.update({name: display + 1})
             except Exception:
@@ -75,26 +58,29 @@ class ParserFile:
         """
         Запись просмотров в базу данных
         """
-        with self.db.db:
+        with self.table_shop.table_shop:
             for key, value in data.items():
                 name = key
                 display = value
-                product = self.db.PriceParser.get(self.db.PriceParser.name == name)
+                product = self.table_shop.PriceParser.get(self.table_shop.PriceParser.name == name)
                 product.display = display
                 product.save()
 
 
 def start(pr1, pr2):
     """
-    :param pr1:Название компании
-    :param pr2:Процент скидки
+    :param pr1:Название компании (mvideo)
+    :param pr2:Процент скидки (1520) - от 15 - 20%
     """
-    shop = {'mvideo': db1, 'mts': db2, 'dns': db3, 'eldorado': db4}
-    data = 'Нет данных для заданных параметров'
-    for i in shop.keys():
-        if pr1 == i:
-            shop_db = shop.get(i)
-            db_price = ParserFile(shop_db)
-            db_price.unloading_from_the_database()
-            data = db_price.search_for_discounts(pr2)
-    return data
+
+    for key, value in shop.items():
+        if pr1 == key:
+            mp = ParserFile(shop[key])
+            mp.unloading_from_the_database()
+            data = mp.search_for_discounts(pr2)
+        else:
+            data = 'Нет данных для заданных параметров'
+        return data
+
+
+start(pr1='mvideo', pr2=[15, 20])
