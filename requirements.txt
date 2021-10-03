@@ -1,0 +1,4 @@
+pyTelegramBotAPI 3.7.7
+openpyxl 3.0.7
+peewee 3.14.4
+Psycopg2-binary 2.8.6
